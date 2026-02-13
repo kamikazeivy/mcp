@@ -113,7 +113,7 @@ create_crawler_agent(
 
 # Create a crawler for Glue tables
 create_crawler_agent(
-    name="SalesTables Crawler",
+    name="SalesTablesCrawler",
     sentinel_id="sentinel-123456",
     resource_type="glue-table",
     include_patterns=["sales_"],

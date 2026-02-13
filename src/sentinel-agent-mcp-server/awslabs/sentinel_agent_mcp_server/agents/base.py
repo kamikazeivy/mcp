@@ -15,7 +15,7 @@
 """Base classes for agents."""
 
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from awslabs.sentinel_agent_mcp_server.models import (
     AgentStatus,
@@ -84,7 +84,7 @@ class BaseCrawlerAgent(ABC):
         report = DataReport(
             crawler_id=self.agent_id,
             sentinel_id=self.sentinel_id,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             data_type=data_type,
             data=data,
             metadata=metadata or {},

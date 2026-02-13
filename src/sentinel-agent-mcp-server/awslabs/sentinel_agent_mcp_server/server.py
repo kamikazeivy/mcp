@@ -15,7 +15,8 @@
 """Sentinel Agent MCP Server - Scoped crawler agents with sentinel reporting."""
 
 import json
-from datetime import datetime
+import uuid
+from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Optional
 from fastmcp import FastMCP
 from pydantic import Field
@@ -64,7 +65,7 @@ async def create_sentinel_agent(
         JSON string with sentinel creation status and details
     """
     if agent_id is None:
-        agent_id = f'sentinel-{datetime.utcnow().timestamp()}'
+        agent_id = f'sentinel-{uuid.uuid4().hex[:12]}'
 
     if agent_id in sentinels:
         return json.dumps({'success': False, 'error': 'Sentinel ID already exists'})
@@ -136,7 +137,7 @@ async def create_crawler_agent(
         JSON string with crawler creation status and details
     """
     if agent_id is None:
-        agent_id = f'crawler-{datetime.utcnow().timestamp()}'
+        agent_id = f'crawler-{uuid.uuid4().hex[:12]}'
 
     if agent_id in crawlers:
         return json.dumps({'success': False, 'error': 'Crawler ID already exists'})
@@ -214,7 +215,7 @@ async def run_crawler_agent(
         report = await crawler.report_to_sentinel(
             data=data_item,
             data_type=data_item.get('resource_type', 'unknown'),
-            metadata={'crawl_timestamp': datetime.utcnow().isoformat()},
+            metadata={'crawl_timestamp': datetime.now(timezone.utc).isoformat()},
         )
         # Send report to sentinel
         receipt = await sentinel.receive_report(report)

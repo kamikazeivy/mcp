@@ -14,7 +14,7 @@
 
 """Data models for Sentinel Agent MCP Server."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
@@ -51,7 +51,9 @@ class DataReport(BaseModel):
 
     crawler_id: str = Field(..., description='ID of the crawler that generated this report')
     sentinel_id: str = Field(..., description='ID of the assigned sentinel')
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description='Report timestamp')
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc), description='Report timestamp'
+    )
     data_type: str = Field(..., description='Type of data being reported')
     data: Dict[str, Any] = Field(..., description='The actual data payload')
     metadata: Dict[str, Any] = Field(
@@ -68,7 +70,9 @@ class CrawlerAgent(BaseModel):
     sentinel_id: str = Field(..., description='ID of the assigned sentinel')
     scope: CrawlerScope = Field(..., description='Scope configuration for this crawler')
     status: AgentStatus = Field(default=AgentStatus.IDLE, description='Current status')
-    created_at: datetime = Field(default_factory=datetime.utcnow, description='Creation timestamp')
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc), description='Creation timestamp'
+    )
     last_report_at: Optional[datetime] = Field(
         default=None, description='Timestamp of last report'
     )
@@ -87,7 +91,9 @@ class SentinelAgent(BaseModel):
         default_factory=list, description='List of assigned crawler IDs'
     )
     status: AgentStatus = Field(default=AgentStatus.IDLE, description='Current status')
-    created_at: datetime = Field(default_factory=datetime.utcnow, description='Creation timestamp')
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc), description='Creation timestamp'
+    )
     data_buffer: List[DataReport] = Field(
         default_factory=list, description='Buffer of received data reports'
     )
@@ -104,5 +110,7 @@ class AgentAssignment(BaseModel):
 
     crawler_id: str = Field(..., description='ID of the crawler')
     sentinel_id: str = Field(..., description='ID of the sentinel')
-    created_at: datetime = Field(default_factory=datetime.utcnow, description='Assignment timestamp')
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc), description='Assignment timestamp'
+    )
     active: bool = Field(default=True, description='Whether assignment is active')
