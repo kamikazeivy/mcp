@@ -16,19 +16,17 @@
 
 import json
 import uuid
-from datetime import datetime, timezone
-from typing import Annotated, Any, Dict, List, Optional
-from fastmcp import FastMCP
-from pydantic import Field
-from awslabs.sentinel_agent_mcp_server.models import (
-    AgentStatus,
-    CrawlerAgent,
-    CrawlerScope,
-    DataReport,
-    SentinelAgent,
-)
 from awslabs.sentinel_agent_mcp_server.agents.base import BaseSentinelAgent
 from awslabs.sentinel_agent_mcp_server.agents.glue_crawler import GlueCrawlerAgent
+from awslabs.sentinel_agent_mcp_server.models import (
+    CrawlerAgent,
+    CrawlerScope,
+    SentinelAgent,
+)
+from datetime import datetime, timezone
+from fastmcp import FastMCP
+from pydantic import Field
+from typing import Annotated, Any, Dict, List, Optional
 
 
 # Initialize MCP server

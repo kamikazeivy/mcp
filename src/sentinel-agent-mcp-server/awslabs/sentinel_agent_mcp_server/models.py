@@ -16,8 +16,8 @@
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Optional
 
 
 class AgentStatus(str, Enum):
@@ -77,9 +77,7 @@ class CrawlerAgent(BaseModel):
         default=None, description='Timestamp of last report'
     )
     report_count: int = Field(default=0, description='Number of reports submitted')
-    config: Dict[str, Any] = Field(
-        default_factory=dict, description='Additional configuration'
-    )
+    config: Dict[str, Any] = Field(default_factory=dict, description='Additional configuration')
 
 
 class SentinelAgent(BaseModel):
@@ -97,12 +95,8 @@ class SentinelAgent(BaseModel):
     data_buffer: List[DataReport] = Field(
         default_factory=list, description='Buffer of received data reports'
     )
-    max_buffer_size: int = Field(
-        default=1000, description='Maximum number of reports to buffer'
-    )
-    config: Dict[str, Any] = Field(
-        default_factory=dict, description='Additional configuration'
-    )
+    max_buffer_size: int = Field(default=1000, description='Maximum number of reports to buffer')
+    config: Dict[str, Any] = Field(default_factory=dict, description='Additional configuration')
 
 
 class AgentAssignment(BaseModel):

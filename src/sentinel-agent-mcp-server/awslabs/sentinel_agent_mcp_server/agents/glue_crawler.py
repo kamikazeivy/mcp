@@ -15,9 +15,9 @@
 """AWS Glue Crawler integration for scoped crawling."""
 
 import boto3
-from typing import Any, Dict, List, Optional
 from awslabs.sentinel_agent_mcp_server.agents.base import BaseCrawlerAgent
-from awslabs.sentinel_agent_mcp_server.models import CrawlerAgent, AgentStatus
+from awslabs.sentinel_agent_mcp_server.models import AgentStatus, CrawlerAgent
+from typing import Any, Dict, List, Optional
 
 
 class GlueCrawlerAgent(BaseCrawlerAgent):
@@ -82,7 +82,6 @@ class GlueCrawlerAgent(BaseCrawlerAgent):
             List of crawler names
         """
         crawlers = []
-        scope = self.config.scope
         paginator = self.glue_client.get_paginator('list_crawlers')
 
         for page in paginator.paginate():
@@ -123,7 +122,6 @@ class GlueCrawlerAgent(BaseCrawlerAgent):
             List of table info dicts with 'database' and 'table' keys
         """
         tables = []
-        scope = self.config.scope
 
         # Get databases first
         databases = await self._list_scoped_databases()

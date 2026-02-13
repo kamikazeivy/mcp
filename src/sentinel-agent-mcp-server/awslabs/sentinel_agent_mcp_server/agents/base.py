@@ -15,15 +15,14 @@
 """Base classes for agents."""
 
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
 from awslabs.sentinel_agent_mcp_server.models import (
     AgentStatus,
     CrawlerAgent,
-    CrawlerScope,
     DataReport,
     SentinelAgent,
 )
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 
 class BaseCrawlerAgent(ABC):
