@@ -325,6 +325,7 @@ async def setup():
         from awslabs.aws_dataprocessing_mcp_server.server import mcp as dataprocessing_server
         from awslabs.dynamodb_mcp_server.server import app as dynamodb_server
         from awslabs.s3_tables_mcp_server.server import app as s3_tables_server
+        from awslabs.sentinel_agent_mcp_server.server import mcp as sentinel_agent_server
 
         logger.info('Enabling Data Platform Engineering servers')
         imported_servers = await call_import_server(
@@ -335,6 +336,12 @@ async def setup():
         )
         imported_servers = await call_import_server(
             dataprocessing_server, 'dataprocessing', 'dataprocessing_server', imported_servers
+        )
+        imported_servers = await call_import_server(
+            sentinel_agent_server,
+            'sentinel_agent',
+            'sentinel_agent_server',
+            imported_servers,
         )
 
     # Frontend Development
