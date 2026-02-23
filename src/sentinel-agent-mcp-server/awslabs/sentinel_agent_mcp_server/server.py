@@ -16,8 +16,8 @@
 
 import json
 import uuid
-from awslabs.sentinel_agent_mcp_server.agents.base import BaseSentinelAgent
-from awslabs.sentinel_agent_mcp_server.agents.glue_crawler import GlueCrawlerAgent
+from awslabs.sentinel_agent_mcp_server.agents.base import BaseCrawlerAgent, BaseSentinelAgent
+from awslabs.sentinel_agent_mcp_server.agents.local_fs_crawler import LocalFileSystemCrawler
 from awslabs.sentinel_agent_mcp_server.models import (
     CrawlerAgent,
     CrawlerScope,
@@ -26,7 +26,15 @@ from awslabs.sentinel_agent_mcp_server.models import (
 from datetime import datetime, timezone
 from fastmcp import FastMCP
 from pydantic import Field
-from typing import Annotated, Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional, Union
+
+# Try to import AWS Glue crawler (optional dependency)
+try:
+    from awslabs.sentinel_agent_mcp_server.agents.glue_crawler import GlueCrawlerAgent
+
+    AWS_AVAILABLE = True
+except ImportError:
+    AWS_AVAILABLE = False
 
 
 # Initialize MCP server
@@ -36,7 +44,7 @@ mcp = FastMCP(
 
 # In-memory storage for agents
 sentinels: Dict[str, BaseSentinelAgent] = {}
-crawlers: Dict[str, GlueCrawlerAgent] = {}
+crawlers: Dict[str, Union[BaseCrawlerAgent, LocalFileSystemCrawler]] = {}
 
 
 @mcp.tool(name='create_sentinel_agent')
@@ -95,9 +103,12 @@ async def create_crawler_agent(
     resource_type: Annotated[
         str,
         Field(
-            description='Type of resource to crawl (e.g., glue-crawler, glue-database, glue-table)'
+            description='Type of resource to crawl. Local: directory, file, all. AWS (if available): glue-crawler, glue-database, glue-table'
         ),
     ],
+    crawler_type: Annotated[
+        str, Field(description='Type of crawler: "local" (free) or "aws-glue" (requires AWS)')
+    ] = 'local',
     agent_id: Annotated[
         Optional[str], Field(description='Unique ID (auto-generated if not provided)')
     ] = None,
@@ -111,8 +122,12 @@ async def create_crawler_agent(
         Optional[List[str]], Field(description='Patterns to exclude from crawling')
     ] = None,
     max_depth: Annotated[int, Field(description='Maximum depth for hierarchical crawling')] = 1,
+    base_path: Annotated[
+        Optional[str],
+        Field(description='Base directory path for local crawler (default: current directory)'),
+    ] = None,
     region_name: Annotated[
-        Optional[str], Field(description='AWS region name (uses default if not specified)')
+        Optional[str], Field(description='AWS region name (for aws-glue crawler only)')
     ] = None,
 ) -> str:
     """Create a new scoped crawler agent assigned to a sentinel.
@@ -123,13 +138,17 @@ async def create_crawler_agent(
     Args:
         name: Human-readable name for the crawler
         sentinel_id: ID of the sentinel to assign this crawler to
-        resource_type: Type of resource to crawl (glue-crawler, glue-database, glue-table)
+        resource_type: Type of resource to crawl
+            - Local: directory, file, all
+            - AWS Glue: glue-crawler, glue-database, glue-table
+        crawler_type: Type of crawler - "local" (free, no AWS) or "aws-glue" (requires AWS)
         agent_id: Optional unique ID (auto-generated if not provided)
         scope_filters: Optional filters to limit crawler scope
         include_patterns: Optional patterns to include in crawling
         exclude_patterns: Optional patterns to exclude from crawling
         max_depth: Maximum depth for hierarchical crawling (default: 1)
-        region_name: Optional AWS region name
+        base_path: Base directory path for local crawler
+        region_name: Optional AWS region name (for aws-glue crawler)
 
     Returns:
         JSON string with crawler creation status and details
@@ -143,6 +162,15 @@ async def create_crawler_agent(
     if sentinel_id not in sentinels:
         return json.dumps({'success': False, 'error': 'Sentinel not found'})
 
+    # Check if AWS crawler is requested but not available
+    if crawler_type == 'aws-glue' and not AWS_AVAILABLE:
+        return json.dumps(
+            {
+                'success': False,
+                'error': 'AWS Glue crawler requires boto3. Install with: pip install awslabs.sentinel-agent-mcp-server[aws]',
+            }
+        )
+
     scope = CrawlerScope(
         resource_type=resource_type,
         scope_filters=scope_filters or {},
@@ -153,7 +181,19 @@ async def create_crawler_agent(
 
     config = CrawlerAgent(agent_id=agent_id, name=name, sentinel_id=sentinel_id, scope=scope)
 
-    crawler = GlueCrawlerAgent(config, region_name=region_name)
+    # Create appropriate crawler type
+    if crawler_type == 'local':
+        crawler = LocalFileSystemCrawler(config, base_path=base_path or '.')
+    elif crawler_type == 'aws-glue':
+        crawler = GlueCrawlerAgent(config, region_name=region_name)
+    else:
+        return json.dumps(
+            {
+                'success': False,
+                'error': f'Unknown crawler type: {crawler_type}. Use "local" or "aws-glue"',
+            }
+        )
+
     crawlers[agent_id] = crawler
 
     # Assign crawler to sentinel
@@ -167,6 +207,7 @@ async def create_crawler_agent(
                 'agent_id': agent_id,
                 'name': name,
                 'sentinel_id': sentinel_id,
+                'crawler_type': crawler_type,
                 'resource_type': resource_type,
                 'status': crawler.status.value,
                 'created_at': config.created_at.isoformat(),
@@ -340,6 +381,9 @@ async def list_agents(
                 'agent_id': c.agent_id,
                 'name': c.config.name,
                 'sentinel_id': c.sentinel_id,
+                'crawler_type': 'local'
+                if isinstance(c, LocalFileSystemCrawler)
+                else 'aws-glue',
                 'resource_type': c.config.scope.resource_type,
                 'status': c.status.value,
                 'report_count': c.config.report_count,

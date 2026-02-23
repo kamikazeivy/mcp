@@ -1,7 +1,7 @@
 [project]
 name = "awslabs.sentinel-agent-mcp-server"
 
-version = "0.1.0"
+version = "0.2.0"
 
 description = "An AWS Labs Model Context Protocol (MCP) server for scoped crawler agents with sentinel reporting"
 readme = "README.md"
@@ -11,6 +11,10 @@ dependencies = [
     "loguru>=0.7.0",
     "mcp[cli]>=1.23.0",
     "pydantic>=2.10.6",
+]
+
+[project.optional-dependencies]
+aws = [
     "boto3>=1.34.0",
 ]
 license = {text = "Apache-2.0"}
