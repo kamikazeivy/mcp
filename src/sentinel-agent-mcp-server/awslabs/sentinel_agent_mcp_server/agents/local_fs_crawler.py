@@ -15,10 +15,10 @@
 """Local file system crawler for cost-free data discovery."""
 
 import os
-from pathlib import Path
-from typing import Any, Dict, List
 from awslabs.sentinel_agent_mcp_server.agents.base import BaseCrawlerAgent
 from awslabs.sentinel_agent_mcp_server.models import AgentStatus, CrawlerAgent
+from pathlib import Path
+from typing import Any, Dict, List
 
 
 class LocalFileSystemCrawler(BaseCrawlerAgent):

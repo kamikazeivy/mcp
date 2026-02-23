@@ -28,6 +28,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 from typing import Annotated, Any, Dict, List, Optional, Union
 
+
 # Try to import AWS Glue crawler (optional dependency)
 try:
     from awslabs.sentinel_agent_mcp_server.agents.glue_crawler import GlueCrawlerAgent
@@ -259,7 +260,11 @@ async def run_crawler_agent(
         # Send report to sentinel
         receipt = await sentinel.receive_report(report)
         reports.append(
-            {'data_type': report.data_type, 'timestamp': report.timestamp.isoformat(), 'receipt': receipt}
+            {
+                'data_type': report.data_type,
+                'timestamp': report.timestamp.isoformat(),
+                'receipt': receipt,
+            }
         )
 
     return json.dumps(
@@ -381,9 +386,7 @@ async def list_agents(
                 'agent_id': c.agent_id,
                 'name': c.config.name,
                 'sentinel_id': c.sentinel_id,
-                'crawler_type': 'local'
-                if isinstance(c, LocalFileSystemCrawler)
-                else 'aws-glue',
+                'crawler_type': 'local' if isinstance(c, LocalFileSystemCrawler) else 'aws-glue',
                 'resource_type': c.config.scope.resource_type,
                 'status': c.status.value,
                 'report_count': c.config.report_count,
