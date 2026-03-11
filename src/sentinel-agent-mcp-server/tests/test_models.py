@@ -14,16 +14,15 @@
 
 """Tests for agent models."""
 
-import pytest
-from datetime import datetime
 from awslabs.sentinel_agent_mcp_server.models import (
+    AgentAssignment,
     AgentStatus,
+    CrawlerAgent,
     CrawlerScope,
     DataReport,
-    CrawlerAgent,
     SentinelAgent,
-    AgentAssignment,
 )
+from datetime import datetime
 
 
 def test_agent_status_enum():

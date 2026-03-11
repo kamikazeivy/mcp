@@ -15,7 +15,7 @@
 """Tests for base agent classes."""
 
 import pytest
-from datetime import datetime
+from awslabs.sentinel_agent_mcp_server.agents.base import BaseCrawlerAgent, BaseSentinelAgent
 from awslabs.sentinel_agent_mcp_server.models import (
     AgentStatus,
     CrawlerAgent,
@@ -23,7 +23,6 @@ from awslabs.sentinel_agent_mcp_server.models import (
     DataReport,
     SentinelAgent,
 )
-from awslabs.sentinel_agent_mcp_server.agents.base import BaseCrawlerAgent, BaseSentinelAgent
 
 
 class MockCrawlerAgent(BaseCrawlerAgent):

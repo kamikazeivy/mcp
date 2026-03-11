@@ -16,9 +16,9 @@
 
 import pytest
 import tempfile
-from pathlib import Path
-from awslabs.sentinel_agent_mcp_server.models import AgentStatus, CrawlerAgent, CrawlerScope
 from awslabs.sentinel_agent_mcp_server.agents.local_fs_crawler import LocalFileSystemCrawler
+from awslabs.sentinel_agent_mcp_server.models import AgentStatus, CrawlerAgent, CrawlerScope
+from pathlib import Path
 
 
 @pytest.fixture
@@ -108,9 +108,7 @@ async def test_crawl_directories(temp_dir):
 @pytest.mark.asyncio
 async def test_crawl_with_include_patterns(temp_dir):
     """Test crawling with include patterns."""
-    scope = CrawlerScope(
-        resource_type='file', include_patterns=['prod_', '.json'], max_depth=1
-    )
+    scope = CrawlerScope(resource_type='file', include_patterns=['prod_', '.json'], max_depth=1)
     config = CrawlerAgent(
         agent_id='test-crawler',
         name='Test Crawler',

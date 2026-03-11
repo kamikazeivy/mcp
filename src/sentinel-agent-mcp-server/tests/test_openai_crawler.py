@@ -16,9 +16,9 @@
 
 import pytest
 import tempfile
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
 from awslabs.sentinel_agent_mcp_server.models import AgentStatus, CrawlerAgent, CrawlerScope
+from pathlib import Path
+from unittest.mock import MagicMock
 
 
 # Skip tests if openai not available
@@ -102,16 +102,8 @@ async def test_openai_crawler_without_api_key(temp_dir):
 
 
 @pytest.mark.asyncio
-@patch('openai.OpenAI')
-async def test_openai_crawler_with_content_analysis(
-    mock_openai_class, temp_dir, mock_openai_response
-):
+async def test_openai_crawler_with_content_analysis(temp_dir, mock_openai_response):
     """Test OpenAI crawler with content analysis enabled."""
-    # Setup mock
-    mock_client = MagicMock()
-    mock_client.chat.completions.create.return_value = mock_openai_response
-    mock_openai_class.return_value = mock_client
-
     scope = CrawlerScope(resource_type='file', max_depth=1)
     config = CrawlerAgent(
         agent_id='test-crawler',
@@ -126,30 +118,34 @@ async def test_openai_crawler_with_content_analysis(
         enable_content_analysis=True,
     )
 
+    # Mock the OpenAI client directly
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = mock_openai_response
+    crawler._client = mock_client
+
     results = await crawler.crawl()
 
     # Should have analyzed at least some files
     assert len(results) >= 3
 
     # Check that some files have AI analysis
-    analyzed_files = [r for r in results if 'ai_analysis' in r and 'ai_summary' in r['ai_analysis']]
+    analyzed_files = [
+        r for r in results if 'ai_analysis' in r and 'ai_summary' in r['ai_analysis']
+    ]
 
-    # At least one file should be analyzed
-    if analyzed_files:
-        analysis = analyzed_files[0]['ai_analysis']
-        assert analysis['analysis_enabled'] is True
-        assert 'ai_summary' in analysis
-        assert 'model_used' in analysis
+    # Assert that at least one file was analyzed (when mock is properly configured)
+    assert len(analyzed_files) > 0, 'Expected at least one file to be analyzed with AI'
+
+    # Verify the analysis structure
+    analysis = analyzed_files[0]['ai_analysis']
+    assert analysis['analysis_enabled'] is True
+    assert 'ai_summary' in analysis
+    assert 'model_used' in analysis
 
 
 @pytest.mark.asyncio
-@patch('openai.OpenAI')
-async def test_classify_discovered_data(mock_openai_class, temp_dir, mock_openai_response):
+async def test_classify_discovered_data(temp_dir, mock_openai_response):
     """Test AI classification of discovered data."""
-    # Setup mock
-    mock_client = MagicMock()
-    mock_openai_class.return_value = mock_client
-
     # Mock classification response
     classification_response = MagicMock()
     classification_response.choices = [MagicMock()]
@@ -160,7 +156,6 @@ async def test_classify_discovered_data(mock_openai_class, temp_dir, mock_openai
         'Recommendations: Add tests directory'
     )
     classification_response.usage.total_tokens = 75
-    mock_client.chat.completions.create.return_value = classification_response
 
     scope = CrawlerScope(resource_type='file')
     config = CrawlerAgent(
@@ -170,6 +165,11 @@ async def test_classify_discovered_data(mock_openai_class, temp_dir, mock_openai
         scope=scope,
     )
     crawler = OpenAICrawler(config, base_path=str(temp_dir), api_key='test-key')
+
+    # Mock the OpenAI client directly
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = classification_response
+    crawler._client = mock_client
 
     # Create mock discovered data
     discovered_data = [

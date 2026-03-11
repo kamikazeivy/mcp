@@ -34,6 +34,10 @@ class OpenAICrawler(LocalFileSystemCrawler):
     More maintainable for single developers than AWS infrastructure!
     """
 
+    # Configuration constants
+    MAX_ANALYSIS_FILE_SIZE = 100_000  # 100KB - Balance between cost and coverage
+    MAX_CLASSIFICATION_ITEMS = 50  # Limit to avoid excessive API costs
+
     def __init__(
         self,
         config: CrawlerAgent,
@@ -41,6 +45,7 @@ class OpenAICrawler(LocalFileSystemCrawler):
         api_key: Optional[str] = None,
         model: str = 'gpt-3.5-turbo',
         enable_content_analysis: bool = True,
+        max_analysis_file_size: Optional[int] = None,
     ):
         """Initialize the OpenAI-enhanced crawler.
 
@@ -50,11 +55,13 @@ class OpenAICrawler(LocalFileSystemCrawler):
             api_key: OpenAI API key (defaults to OPENAI_API_KEY env var)
             model: OpenAI model to use (default: gpt-3.5-turbo)
             enable_content_analysis: Whether to analyze file contents with AI
+            max_analysis_file_size: Max file size for analysis (default: 100KB)
         """
         super().__init__(config, base_path)
         self.api_key = api_key or os.environ.get('OPENAI_API_KEY')
         self.model = model
         self.enable_content_analysis = enable_content_analysis
+        self.max_analysis_file_size = max_analysis_file_size or self.MAX_ANALYSIS_FILE_SIZE
         self._client = None
 
     def _get_client(self):
@@ -138,8 +145,8 @@ Content (first 1000 chars):
         # Add AI analysis if enabled
         if self.enable_content_analysis and 'error' not in file_info:
             try:
-                # Read file content for analysis (limit size)
-                if file_info.get('size_bytes', 0) < 100000:  # Only analyze files < 100KB
+                # Only analyze files smaller than max size to control costs
+                if file_info.get('size_bytes', 0) < self.max_analysis_file_size:
                     try:
                         content = file_path.read_text(encoding='utf-8', errors='ignore')
                         analysis = await self._analyze_content(content, str(file_path))
@@ -152,7 +159,7 @@ Content (first 1000 chars):
                 else:
                     file_info['ai_analysis'] = {
                         'analysis_enabled': True,
-                        'skipped': 'File too large for analysis',
+                        'skipped': f'File too large for analysis (max: {self.max_analysis_file_size} bytes)',
                     }
             except Exception as e:
                 file_info['ai_analysis'] = {'error': str(e)}
@@ -176,11 +183,13 @@ Content (first 1000 chars):
         try:
             client = self._get_client()
 
-            # Create classification prompt
+            # Create classification prompt with limited items to control API costs
+            # We limit to MAX_CLASSIFICATION_ITEMS to keep token usage reasonable
+            items_to_analyze = discovered_data[: self.MAX_CLASSIFICATION_ITEMS]
             data_summary = '\n'.join(
                 [
                     f'- {item.get("name", "unknown")}: {item.get("resource_type", "unknown")}'
-                    for item in discovered_data[:50]  # Limit to first 50 items
+                    for item in items_to_analyze
                 ]
             )
 
@@ -210,7 +219,8 @@ Discovered items:
             return {
                 'success': True,
                 'classification': response.choices[0].message.content,
-                'items_analyzed': min(len(discovered_data), 50),
+                'items_analyzed': len(items_to_analyze),
+                'total_items': len(discovered_data),
                 'model_used': self.model,
                 'tokens_used': response.usage.total_tokens if response.usage else 0,
             }
