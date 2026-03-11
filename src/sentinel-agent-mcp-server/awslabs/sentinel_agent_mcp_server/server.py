@@ -37,6 +37,14 @@ try:
 except ImportError:
     AWS_AVAILABLE = False
 
+# Try to import OpenAI crawler (optional dependency)
+try:
+    from awslabs.sentinel_agent_mcp_server.agents.openai_crawler import OpenAICrawler
+
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+
 
 # Initialize MCP server
 mcp = FastMCP(
@@ -108,7 +116,10 @@ async def create_crawler_agent(
         ),
     ],
     crawler_type: Annotated[
-        str, Field(description='Type of crawler: "local" (free) or "aws-glue" (requires AWS)')
+        str,
+        Field(
+            description='Type of crawler: "local" (free), "openai" (AI-enhanced), or "aws-glue" (requires AWS)'
+        ),
     ] = 'local',
     agent_id: Annotated[
         Optional[str], Field(description='Unique ID (auto-generated if not provided)')
@@ -125,8 +136,18 @@ async def create_crawler_agent(
     max_depth: Annotated[int, Field(description='Maximum depth for hierarchical crawling')] = 1,
     base_path: Annotated[
         Optional[str],
-        Field(description='Base directory path for local crawler (default: current directory)'),
+        Field(description='Base directory path for local/openai crawler (default: current directory)'),
     ] = None,
+    openai_api_key: Annotated[
+        Optional[str],
+        Field(description='OpenAI API key (for openai crawler, uses OPENAI_API_KEY env var if not provided)'),
+    ] = None,
+    openai_model: Annotated[
+        str, Field(description='OpenAI model to use (default: gpt-3.5-turbo)')
+    ] = 'gpt-3.5-turbo',
+    enable_content_analysis: Annotated[
+        bool, Field(description='Enable AI content analysis for openai crawler (default: True)')
+    ] = True,
     region_name: Annotated[
         Optional[str], Field(description='AWS region name (for aws-glue crawler only)')
     ] = None,
@@ -142,13 +163,19 @@ async def create_crawler_agent(
         resource_type: Type of resource to crawl
             - Local: directory, file, all
             - AWS Glue: glue-crawler, glue-database, glue-table
-        crawler_type: Type of crawler - "local" (free, no AWS) or "aws-glue" (requires AWS)
+        crawler_type: Type of crawler:
+            - "local" (free, no AWS, no AI)
+            - "openai" (AI-enhanced, requires OpenAI API key)
+            - "aws-glue" (requires AWS)
         agent_id: Optional unique ID (auto-generated if not provided)
         scope_filters: Optional filters to limit crawler scope
         include_patterns: Optional patterns to include in crawling
         exclude_patterns: Optional patterns to exclude from crawling
         max_depth: Maximum depth for hierarchical crawling (default: 1)
-        base_path: Base directory path for local crawler
+        base_path: Base directory path for local/openai crawler
+        openai_api_key: OpenAI API key (for openai crawler)
+        openai_model: OpenAI model to use (default: gpt-3.5-turbo)
+        enable_content_analysis: Enable AI content analysis (default: True)
         region_name: Optional AWS region name (for aws-glue crawler)
 
     Returns:
@@ -162,6 +189,15 @@ async def create_crawler_agent(
 
     if sentinel_id not in sentinels:
         return json.dumps({'success': False, 'error': 'Sentinel not found'})
+
+    # Check if OpenAI crawler is requested but not available
+    if crawler_type == 'openai' and not OPENAI_AVAILABLE:
+        return json.dumps(
+            {
+                'success': False,
+                'error': 'OpenAI crawler requires openai package. Install with: pip install awslabs.sentinel-agent-mcp-server[openai]',
+            }
+        )
 
     # Check if AWS crawler is requested but not available
     if crawler_type == 'aws-glue' and not AWS_AVAILABLE:
@@ -185,13 +221,21 @@ async def create_crawler_agent(
     # Create appropriate crawler type
     if crawler_type == 'local':
         crawler = LocalFileSystemCrawler(config, base_path=base_path or '.')
+    elif crawler_type == 'openai':
+        crawler = OpenAICrawler(
+            config,
+            base_path=base_path or '.',
+            api_key=openai_api_key,
+            model=openai_model,
+            enable_content_analysis=enable_content_analysis,
+        )
     elif crawler_type == 'aws-glue':
         crawler = GlueCrawlerAgent(config, region_name=region_name)
     else:
         return json.dumps(
             {
                 'success': False,
-                'error': f'Unknown crawler type: {crawler_type}. Use "local" or "aws-glue"',
+                'error': f'Unknown crawler type: {crawler_type}. Use "local", "openai", or "aws-glue"',
             }
         )
 
@@ -386,7 +430,11 @@ async def list_agents(
                 'agent_id': c.agent_id,
                 'name': c.config.name,
                 'sentinel_id': c.sentinel_id,
-                'crawler_type': 'local' if isinstance(c, LocalFileSystemCrawler) else 'aws-glue',
+                'crawler_type': (
+                    'openai'
+                    if 'OpenAICrawler' in type(c).__name__
+                    else 'local' if isinstance(c, LocalFileSystemCrawler) else 'aws-glue'
+                ),
                 'resource_type': c.config.scope.resource_type,
                 'status': c.status.value,
                 'report_count': c.config.report_count,
@@ -420,6 +468,62 @@ async def clear_sentinel_reports(
     result = await sentinel.clear_reports(crawler_id=crawler_id)
 
     return json.dumps(result)
+
+
+@mcp.tool(name='classify_crawler_data_with_ai')
+async def classify_crawler_data_with_ai(
+    crawler_id: Annotated[str, Field(description='ID of the OpenAI crawler')],
+    sentinel_id: Annotated[str, Field(description='ID of the sentinel with reports')],
+) -> str:
+    """Use AI to classify and analyze discovered data (OpenAI crawler only).
+
+    This tool uses OpenAI to provide intelligent classification and insights
+    about the data discovered by a crawler. Only works with openai crawler type.
+
+    Args:
+        crawler_id: ID of the OpenAI crawler
+        sentinel_id: ID of the sentinel containing reports
+
+    Returns:
+        JSON string with AI classification and insights
+    """
+    if crawler_id not in crawlers:
+        return json.dumps({'success': False, 'error': 'Crawler not found'})
+
+    crawler = crawlers[crawler_id]
+
+    # Check if crawler is OpenAI type
+    if 'OpenAICrawler' not in type(crawler).__name__:
+        return json.dumps(
+            {
+                'success': False,
+                'error': 'This tool only works with OpenAI crawler type. Create crawler with crawler_type="openai"',
+            }
+        )
+
+    if sentinel_id not in sentinels:
+        return json.dumps({'success': False, 'error': 'Sentinel not found'})
+
+    sentinel = sentinels[sentinel_id]
+
+    # Get reports for this crawler
+    reports = await sentinel.get_reports(crawler_id=crawler_id)
+
+    if not reports:
+        return json.dumps(
+            {
+                'success': False,
+                'error': 'No reports found. Run the crawler first with run_crawler_agent',
+            }
+        )
+
+    # Extract discovered data from reports
+    discovered_data = [report.data for report in reports]
+
+    # Use OpenAI to classify
+    classification_result = await crawler.classify_discovered_data(discovered_data)
+
+    return json.dumps(classification_result)
 
 
 def main():

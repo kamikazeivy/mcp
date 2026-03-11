@@ -2,7 +2,7 @@
 
 A Model Context Protocol (MCP) server that provides scoped crawler agents with sentinel agent reporting capabilities. This server enables the creation of specialized crawler agents that discover and report data to assigned sentinel agents for centralized data transfer and management.
 
-**NEW: Now supports cost-free local file system crawling!** No AWS required for basic functionality.
+**💡 PERFECT FOR SOLO DEVELOPERS!** Use OpenAI for AI-enhanced crawling or go completely free with local crawling. No AWS infrastructure needed!
 
 ## Overview
 
@@ -15,8 +15,9 @@ This architecture enables:
 - Distributed data discovery with centralized coordination
 - Scoped crawling with configurable filters and patterns
 - Buffered data transfer for efficient processing
-- **Local file system crawling (FREE - no AWS costs)**
-- Optional AWS Glue integration for data catalog exploration
+- **AI-enhanced analysis with OpenAI (recommended for solo devs!)**
+- **Local file system crawling (FREE - no costs at all)**
+- ~~AWS Glue integration~~ (not recommended - too costly and complex)
 
 ## Features
 
@@ -30,31 +31,55 @@ This architecture enables:
 
 ### Scoped Crawler Agents
 
+**🚀 OpenAI Crawler (Recommended for Solo Developers)**
+- AI-powered content analysis and summarization
+- Automatic file classification and categorization
+- Key information extraction
+- Pattern recognition and insights
+- Simple API key setup (much easier than AWS!)
+- Pay-as-you-go pricing (more predictable than AWS)
+- Install with: `pip install awslabs.sentinel-agent-mcp-server[openai]`
+
 **Local File System Crawler (Cost-Free)**
 - Crawl local directories and files
-- No AWS account or credentials required
+- No AI features, no cloud costs
 - Configurable include/exclude patterns
 - Hierarchical crawling with max depth control
 - Works on any operating system
+- Perfect for basic file discovery
 
-**AWS Glue Crawler (Optional)**
+**~~AWS Glue Crawler~~** (Not Recommended - Too Costly)
 - AWS Glue integration (crawlers, databases, tables)
-- Requires AWS credentials and boto3
-- Install with: `pip install awslabs.sentinel-agent-mcp-server[aws]`
+- Requires AWS credentials, IAM setup, ongoing costs
+- Complex infrastructure management
+- Only use if you already have AWS Glue infrastructure
 
 ## Prerequisites
 
 * [Install Python 3.10+](https://www.python.org/downloads/release/python-3100/)
 
-**For AWS Glue crawler (optional):**
+**For OpenAI crawler (recommended for solo developers):**
+* OpenAI API key from [platform.openai.com](https://platform.openai.com/)
+
+**For AWS Glue crawler (not recommended):**
 * [Install the `uv` package manager](https://docs.astral.sh/uv/getting-started/installation/)
 * [Install and configure the AWS CLI with credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html)
 
 ## Setup
 
-### AWS Permissions (Optional - Only for AWS Glue crawler)
+### OpenAI API Key (Recommended for Solo Developers)
 
-For AWS Glue crawler integration, add these IAM policies:
+For AI-enhanced crawling, set your OpenAI API key:
+
+```bash
+export OPENAI_API_KEY='your-api-key-here'
+```
+
+Or pass it directly when creating crawlers.
+
+### AWS Permissions (Not Recommended - Too Costly)
+
+For AWS Glue crawler integration (if you really need it), add these IAM policies:
 
 ```json
 {
@@ -79,16 +104,28 @@ For AWS Glue crawler integration, add these IAM policies:
 
 ## Installation
 
-### Basic Installation (Local Crawler Only - No AWS)
+### 🚀 Recommended: With OpenAI Support (For Solo Developers)
+
+```bash
+pip install awslabs.sentinel-agent-mcp-server[openai]
+```
+
+### Basic Installation (Local Crawler Only - Free)
 
 ```bash
 pip install awslabs.sentinel-agent-mcp-server
 ```
 
-### With AWS Glue Support
+### With AWS Glue Support (Not Recommended)
 
 ```bash
 pip install awslabs.sentinel-agent-mcp-server[aws]
+```
+
+### All Features
+
+```bash
+pip install awslabs.sentinel-agent-mcp-server[all]
 ```
 
 ### Via uvx (Recommended)
@@ -101,8 +138,9 @@ uvx awslabs.sentinel-agent-mcp-server
 
 ```bash
 cd src/sentinel-agent-mcp-server
-pip install -e .  # Basic installation
-pip install -e .[aws]  # With AWS support
+pip install -e .[openai]  # Recommended: with OpenAI
+pip install -e .  # Basic installation (local only)
+pip install -e .[aws]  # With AWS support (not recommended)
 ```
 
 ## Usage Examples
@@ -119,15 +157,40 @@ create_sentinel_agent(
 
 ### 2. Create Scoped Crawler Agents
 
-**Local File System Crawler (Cost-Free)**
+**🚀 OpenAI Crawler (RECOMMENDED for Solo Developers)**
 
 ```python
-# Crawl local directories (no AWS required!)
+# AI-enhanced crawler with content analysis
+create_crawler_agent(
+    name="IntelligentCodeCrawler",
+    sentinel_id="sentinel-123456",
+    resource_type="file",
+    crawler_type="openai",  # AI-powered!
+    base_path="/path/to/project",
+    include_patterns=[".py", ".js", ".md"],
+    exclude_patterns=["__pycache__", "node_modules"],
+    max_depth=3,
+    openai_api_key="sk-...",  # or use OPENAI_API_KEY env var
+    openai_model="gpt-3.5-turbo",  # or gpt-4 for better analysis
+    enable_content_analysis=True
+)
+
+# After running the crawler, get AI-powered classification
+classify_crawler_data_with_ai(
+    crawler_id="crawler-abc123",
+    sentinel_id="sentinel-123456"
+)
+```
+
+**Local File System Crawler (Free, No AI)**
+
+```python
+# Crawl local directories (no AWS, no AI, completely free!)
 create_crawler_agent(
     name="ProjectDirectoriesCrawler",
     sentinel_id="sentinel-123456",
     resource_type="directory",
-    crawler_type="local",  # Free, no AWS costs
+    crawler_type="local",  # Free, no costs
     base_path="/path/to/project",
     include_patterns=["src", "lib"],
     exclude_patterns=["node_modules", ".git"]
@@ -138,28 +201,20 @@ create_crawler_agent(
     name="PythonFilesCrawler",
     sentinel_id="sentinel-123456",
     resource_type="file",
-    crawler_type="local",  # Free, no AWS costs
+    crawler_type="local",  # Free, no costs
     base_path="/path/to/code",
     include_patterns=[".py"],
     exclude_patterns=["__pycache__", "test_"],
     max_depth=3
 )
-
-# Crawl all items (files and directories)
-create_crawler_agent(
-    name="AllItemsCrawler",
-    sentinel_id="sentinel-123456",
-    resource_type="all",
-    crawler_type="local",  # Free, no AWS costs
-    base_path=".",  # Current directory
-    max_depth=2
-)
 ```
 
-**AWS Glue Crawler (Requires AWS - Optional)**
+**~~AWS Glue Crawler~~ (Not Recommended - Too Costly)**
 
 ```python
-# Create a crawler for Glue databases (requires AWS)
+# NOT RECOMMENDED FOR SOLO DEVELOPERS
+# Only use if you already have AWS Glue infrastructure
+# Requires AWS account, credentials, IAM setup, and ongoing costs
 create_crawler_agent(
     name="ProductionDatabasesCrawler",
     sentinel_id="sentinel-123456",

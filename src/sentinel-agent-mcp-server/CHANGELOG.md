@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-11
+
+### Added
+- **OpenAI-Enhanced Crawler**: AI-powered content analysis (RECOMMENDED for solo developers!)
+  - Automatic content summarization using OpenAI
+  - File classification and categorization
+  - Key information extraction
+  - Pattern recognition and insights
+  - Much more maintainable than AWS for single developers
+  - Simple API key configuration (no complex IAM setup)
+  - Pay-as-you-go pricing (predictable costs vs AWS)
+- `classify_crawler_data_with_ai` tool for AI-powered data classification
+- Added OpenAI as optional dependency group
+- Added comprehensive tests for OpenAI crawler (7 new tests)
+- Added `demo_openai_crawler.py` demonstration script
+
+### Changed
+- **DEFAULT RECOMMENDATION**: OpenAI crawler for solo developers (not AWS!)
+- Updated README to emphasize OpenAI over AWS
+- AWS Glue crawler marked as "not recommended" (too costly for solo devs)
+- Enhanced documentation with OpenAI examples
+- Added comparison showing why OpenAI is better than AWS for single developers
+
+### Deprecated
+- AWS Glue crawler usage discouraged for new projects (too complex/costly)
+
 ## [0.2.0] - 2026-02-23
 
 ### Added
