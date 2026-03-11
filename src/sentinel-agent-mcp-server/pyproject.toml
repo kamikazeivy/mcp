@@ -3,7 +3,7 @@ name = "awslabs.sentinel-agent-mcp-server"
 
 version = "0.3.0"
 
-description = "An AWS Labs Model Context Protocol (MCP) server for scoped crawler agents with sentinel reporting"
+description = "MCP server for AI-enhanced scoped crawler agents with sentinel reporting - perfect for solo developers using OpenAI (not AWS!)"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
