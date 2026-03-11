@@ -15,10 +15,10 @@
 """OpenAI-enhanced crawler for intelligent data analysis."""
 
 import os
+from awslabs.sentinel_agent_mcp_server.agents.local_fs_crawler import LocalFileSystemCrawler
+from awslabs.sentinel_agent_mcp_server.models import CrawlerAgent
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from awslabs.sentinel_agent_mcp_server.agents.local_fs_crawler import LocalFileSystemCrawler
-from awslabs.sentinel_agent_mcp_server.models import AgentStatus, CrawlerAgent
 
 
 class OpenAICrawler(LocalFileSystemCrawler):
@@ -179,7 +179,7 @@ Content (first 1000 chars):
             # Create classification prompt
             data_summary = '\n'.join(
                 [
-                    f"- {item.get('name', 'unknown')}: {item.get('resource_type', 'unknown')}"
+                    f'- {item.get("name", "unknown")}: {item.get("resource_type", "unknown")}'
                     for item in discovered_data[:50]  # Limit to first 50 items
                 ]
             )

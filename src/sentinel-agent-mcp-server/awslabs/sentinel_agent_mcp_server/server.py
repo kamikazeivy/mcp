@@ -136,11 +136,15 @@ async def create_crawler_agent(
     max_depth: Annotated[int, Field(description='Maximum depth for hierarchical crawling')] = 1,
     base_path: Annotated[
         Optional[str],
-        Field(description='Base directory path for local/openai crawler (default: current directory)'),
+        Field(
+            description='Base directory path for local/openai crawler (default: current directory)'
+        ),
     ] = None,
     openai_api_key: Annotated[
         Optional[str],
-        Field(description='OpenAI API key (for openai crawler, uses OPENAI_API_KEY env var if not provided)'),
+        Field(
+            description='OpenAI API key (for openai crawler, uses OPENAI_API_KEY env var if not provided)'
+        ),
     ] = None,
     openai_model: Annotated[
         str, Field(description='OpenAI model to use (default: gpt-3.5-turbo)')
@@ -433,7 +437,9 @@ async def list_agents(
                 'crawler_type': (
                     'openai'
                     if 'OpenAICrawler' in type(c).__name__
-                    else 'local' if isinstance(c, LocalFileSystemCrawler) else 'aws-glue'
+                    else 'local'
+                    if isinstance(c, LocalFileSystemCrawler)
+                    else 'aws-glue'
                 ),
                 'resource_type': c.config.scope.resource_type,
                 'status': c.status.value,
